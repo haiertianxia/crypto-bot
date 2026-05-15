@@ -8,7 +8,7 @@ from flask import Flask, render_template, jsonify
 
 import database
 import exchange
-from config import DB_PATH, DASHBOARD_PORT, SYMBOL, RSI_PERIOD, MODE
+from config import DB_PATH, DASHBOARD_PORT, SYMBOL, RSI_PERIOD, MODE, STOP_LOSS_PCT, POSITION_SIZE
 
 app = Flask(__name__, template_folder="templates")
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
@@ -59,6 +59,8 @@ def api_summary():
         "equity_history": eq_history,
         "mode": MODE,
         "simulate": MODE == "SIMULATION",
+        "stop_loss_pct": STOP_LOSS_PCT,
+        "position_size": POSITION_SIZE,
     })
 
 
@@ -84,8 +86,10 @@ def api_config():
     return jsonify({
         "symbol": SYMBOL,
         "rsi_period": RSI_PERIOD,
-        "rsi_buy": 30,
-        "rsi_sell": 70,
+        "rsi_buy": RSI_BUY_THRESHOLD,
+        "rsi_sell": RSI_SELL_THRESHOLD,
+        "stop_loss_pct": STOP_LOSS_PCT,
+        "position_size": POSITION_SIZE,
         "mode": MODE,
         "simulate": MODE == "SIMULATION",
         "push_enabled": bool(os.environ.get("PUSH_ENABLED", "0") == "1"),
