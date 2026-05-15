@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Crypto Bot — Dashboard</title>
+  <style>
+    :root {
+      --bg: #0f1117; --card: #1a1d27; --border: #2a2d3a;
+      --accent: #00d4aa; --red: #ff5252; --green: #00e676;
+      --text: #e0e0e0; --muted: #7a7d8a;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 14px; }
+
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 24px; border-bottom: 1px solid var(--border);
+      background: var(--card);
+    }
+    header h1 { font-size: 18px; font-weight: 600; }
+    .badge {
+      padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700;
+    }
+    .badge-sim  { background: #1e2a35; color: var(--accent); border: 1px solid var(--accent); }
+    .badge-test { background: #2a1e0a; color: #ffb74d; border: 1px solid #ffb74d; }
+    .badge-live { background: #2a0a0a; color: var(--red); border: 1px solid var(--red); }
+
+    .tabs { display: flex; gap: 4px; padding: 16px 24px 0; }
+    .tab {
+      padding: 8px 20px; border-radius: 8px 8px 0 0; cursor: pointer;
+      color: var(--muted); font-weight: 500; border: 1px solid transparent;
+      transition: all 0.2s; user-select: none; display: inline-block;
+    }
+    .tab.active { background: var(--card); color: var(--accent); border-color: var(--border); border-bottom-color: var(--card); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .content { background: var(--card); margin: 0 24px 24px; border-radius: 0 12px 12px; border: 1px solid var(--border); padding: 24px; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .card { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+    .card-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 6px; }
+    .card-value { font-size: 22px; font-weight: 700; }
+    .card-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; padding: 10px 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); border-bottom: 1px solid var(--border); }
+    td { padding: 10px 12px; border-bottom: 1px solid #1e2130; font-size: 13px; }
+    tr:hover td { background: #1e2130; }
+    .pnl-pos { color: var(--green); }
+    .pnl-neg { color: var(--red); }
+    .badge-side { padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; }
+    .badge-side.buy  { background: rgba(0,230,118,0.15); color: var(--green); }
+    .badge-side.sell { background: rgba(255,82,82,0.15); color: var(--red); }
+
+    #equity-chart { width: 100%; height: 180px; background: var(--bg); border-radius: 8px; margin-top: 12px; }
+
+    .log-line { padding: 7px 0; border-bottom: 1px solid #1e2130; font-size: 12px; }
+    .log-time { color: var(--muted); margin-right: 8px; }
+    .log-event { font-weight: 600; color: var(--accent); }
+    .log-detail { color: var(--muted); margin-left: 8px; }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); display: inline-block; margin-right: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+    pre { background: #161a26; border-radius: 8px; padding: 16px; font-size: 12px; color: #aab0c0; overflow-x: auto; line-height: 1.8; }
+    a { color: var(--accent); text-decoration: none; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐾 Crypto Bot <span style="color:var(--accent)">Dashboard</span></h1>
+  <div style="display:flex;align-items:center;gap:12px">
+    <span id="mode-badge" class="badge badge-sim">SIMULATION</span>
+    <span id="push-indicator" style="font-size:11px;color:var(--muted)"></span>
+    <span id="status"><span class="status-dot"></span>Live</span>
+  </div>
+</header>
+
+<div class="tabs">
+  <span id="tab-dashboard" class="tab active" onclick="switchTab('dashboard')">📊 Dashboard</span>
+  <span id="tab-trades"   class="tab"         onclick="switchTab('trades')">📋 Trades</span>
+  <span id="tab-logs"     class="tab"         onclick="switchTab('logs')">📝 Logs</span>
+  <span id="tab-settings" class="tab"         onclick="switchTab('settings')">⚙️ Settings</span>
+</div>
+
+<div class="content">
+  <div id="panel-dashboard" class="panel active">
+    <div class="grid" id="summary-cards"></div>
+    <canvas id="equity-chart"></canvas>
+  </div>
+
+  <div id="panel-trades" class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th><th>PnL</th><th>PnL %</th><th>Notes</th>
+        </tr>
+      </thead>
+      <tbody id="trades-body"></tbody>
+    </table>
+  </div>
+
+  <div id="panel-logs" class="panel">
+    <div id="logs-container"></div>
+  </div>
+
+  <div id="panel-settings" class="panel">
+    <h3 style="margin-bottom:16px">⚙️ Bot Settings</h3>
+    <div class="grid">
+      <div class="card"><div class="card-label">Mode</div><div class="card-value" id="cfg-mode" style="font-size:16px">–</div><div class="card-sub" id="cfg-mode-desc">–</div></div>
+      <div class="card"><div class="card-label">Trading Pair</div><div class="card-value" id="cfg-symbol" style="font-size:16px">–</div></div>
+      <div class="card"><div class="card-label">RSI Period</div><div class="card-value" id="cfg-rsi" style="font-size:16px">–</div></div>
+      <div class="card"><div class="card-label">Buy / Sell</div><div class="card-value" style="font-size:16px">RSI &lt; <span style="color:var(--green)">30</span> / &gt; <span style="color:var(--red)">70</span></div></div>
+      <div class="card"><div class="card-label">WeChat Push</div><div class="card-value" id="cfg-push" style="font-size:14px">–</div><div class="card-sub">pushplus.plus</div></div>
+    </div>
+    <div style="margin-top:20px; padding:16px; background:var(--bg); border-radius:8px; border:1px solid var(--border)">
+      <div style="font-weight:600; margin-bottom:10px">How to switch to real Binance</div>
+<pre>1. Register <a href="https://testnet.binance.vision">testnet.binance.vision</a> for API keys
+
+2. Set environment variables and restart:
+   export SIMULATE_MODE=0
+   export BINAKE_API_KEY="your_key"
+   export BINAKE_API_SECRET="your_secret"
+
+3. Enable WeChat notifications:
+   a) Visit <a href="https://pushplus.plus">pushplus.plus</a> — scan QR with WeChat
+   b) Copy Token and set:
+   export PUSHPLUS_TOKEN="your_token"
+   export PUSH_ENABLED=1
+
+WARNING: Always set IP whitelist before live trading</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+}
+
+function drawChart(values) {
+  const el = document.getElementById('equity-chart');
+  if (!el || !values.length) return;
+  const W = el.offsetWidth || 600, H = 180;
+  el.width = W; el.height = H;
+  const ctx = el.getContext('2d');
+  const min = Math.min(...values), max = Math.max(...values);
+  const pad = { l: 55, r: 10, t: 10, b: 30 };
+  const stepX = (W - pad.l - pad.r) / Math.max(values.length - 1, 1);
+  ctx.clearRect(0, 0, W, H);
+  ctx.strokeStyle = '#2a2d3a'; ctx.lineWidth = 1; ctx.font = '10px sans-serif'; ctx.fillStyle = '#7a7d8a';
+  for (let i = 0; i <= 3; i++) {
+    const y = pad.t + (H - pad.t - pad.b) * i / 3;
+    ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(W - pad.r, y); ctx.stroke();
+    ctx.fillText('$' + (max - (max - min) * i / 3).toFixed(0), 0, y + 3);
+  }
+  ctx.beginPath();
+  values.forEach((v, i) => {
+    const x = pad.l + i * stepX;
+    const y = H - pad.b - ((v - min) / (max - min || 1)) * (H - pad.t - pad.b);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.lineTo(pad.l + (values.length - 1) * stepX, H - pad.b);
+  ctx.lineTo(pad.l, H - pad.b);
+  ctx.closePath();
+  ctx.fillStyle = '#00d4aa22'; ctx.fill();
+  ctx.beginPath(); ctx.strokeStyle = '#00d4aa'; ctx.lineWidth = 2;
+  values.forEach((v, i) => {
+    const x = pad.l + i * stepX;
+    const y = H - pad.b - ((v - min) / (max - min || 1)) * (H - pad.t - pad.b);
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+}
+
+const fmt = (n, d = 2) => n == null ? '–' : n.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const pnl = n => n == null ? '–' : n >= 0
+  ? '<span class="pnl-pos">+$' + fmt(n) + '</span>'
+  : '<span class="pnl-neg">-$' + fmt(Math.abs(n)) + '</span>';
+const pct = n => n == null ? '–' : n >= 0
+  ? '<span class="pnl-pos">+' + n.toFixed(2) + '%</span>'
+  : '<span class="pnl-neg">' + n.toFixed(2) + '%</span>';
+
+function renderSummary(data) {
+  const m = data.market || {};
+  const eq = data.equity || {};
+  const st = data.stats || {};
+  const ot = data.open_trade;
+  const rsi = m.rsi;
+  const rsiColor = rsi == null ? '#7a7d8a' : rsi < 30 ? '#00e676' : rsi > 70 ? '#ff5252' : '#00d4aa';
+  const mode = data.mode || 'SIMULATION';
+  const badge = document.getElementById('mode-badge');
+  badge.textContent = mode;
+  badge.className = 'badge ' + (mode === 'SIMULATION' ? 'badge-sim' : mode === 'TESTNET' ? 'badge-test' : 'badge-live');
+  document.getElementById('summary-cards').innerHTML = [
+    ['Price', '$' + fmt(m.price), '24h: ' + ((m.price_change_pct||0)>=0?'+':'') + fmt(m.price_change_pct,2) + '%'],
+    ['RSI(' + (m.rsi_period||14) + ')', (rsi != null ? rsi.toFixed(2) : 'N/A'), null],
+    ['Total Equity', '$' + fmt(eq.equity), 'Cash: $' + fmt(eq.cash) + ' | Pos: $' + fmt(eq.position_value)],
+    ['Open Position', ot ? '🟢 YES' : '—', ot ? 'Entry $' + fmt(ot.entry_price) + ' x' + fmt(ot.quantity,6) : 'No position'],
+    ['Total Trades', (st.total_trades||0).toString(), 'Win: ' + (st.winning_trades||0) + '/' + (st.total_trades||0)],
+    ['Realized PnL', ((st.total_pnl||0)>=0?'+$':'-$') + fmt(Math.abs(st.total_pnl||0)), 'Avg: $' + fmt(st.avg_pnl)],
+  ].map(row => '<div class="card"><div class="card-label">' + (m.symbol||'BTCUSDT') + ' ' + row[0] + '</div><div class="card-value" style="' + (row[2]&&row[0]==='Realized PnL'?'color:var(--' + ((st.total_pnl||0)>=0?'green':'red') + ')':'') + '">' + row[1] + '</div>' + (row[2] ? '<div class="card-sub">' + row[2] + '</div>' : '') + '</div>').join('');
+
+  if (rsi != null) {
+    const bars = document.querySelectorAll('.card-value');
+    if (bars[1]) {
+      bars[1].style.color = rsiColor;
+    }
+  }
+
+  const hist = data.equity_history || [];
+  if (hist.length) drawChart(hist.map(h => h.equity));
+
+  document.getElementById('cfg-mode').textContent = mode;
+  document.getElementById('cfg-mode').style.color = mode === 'SIMULATION' ? 'var(--accent)' : mode === 'TESTNET' ? '#ffb74d' : 'var(--red)';
+  document.getElementById('cfg-mode-desc').textContent = mode === 'SIMULATION' ? 'Simulated data, no real orders' : mode === 'TESTNET' ? 'Binance testnet — fake fills' : '⚠️ REAL MONEY — LIVE TRADING';
+  document.getElementById('cfg-symbol').textContent = m.symbol || 'BTCUSDT';
+  document.getElementById('cfg-rsi').textContent = m.rsi_period || 14;
+  document.getElementById('cfg-push').textContent = data.simulate ? 'Disabled (simulation mode)' : 'Check env vars';
+  document.getElementById('cfg-push').style.color = data.simulate ? 'var(--muted)' : 'var(--green)';
+}
+
+function renderTrades(trades) {
+  const body = document.getElementById('trades-body');
+  if (!trades.length) {
+    body.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--muted);padding:32px">No trades yet — bot is running...</td></tr>';
+    return;
+  }
+  body.innerHTML = trades.map(t => '<tr><td
