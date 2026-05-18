@@ -4,6 +4,7 @@ Main trading bot — run loop, signal generation, order execution + notification
 
 import time
 import logging
+import logging.handlers  # RotatingFileHandler for safe log rotation
 import threading
 import argparse
 from datetime import datetime
@@ -19,11 +20,18 @@ import notify
 
 # ─── Logging ─────────────────────────────────────────────────────────────────
 
+# RotatingFileHandler: 10 MB per file, keep 3 backups
+rotating = logging.handlers.RotatingFileHandler(
+    LOG_PATH,
+    maxBytes=10 * 1024 * 1024,
+    backupCount=3,
+    encoding="utf-8",
+)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     handlers=[
-        logging.FileHandler(LOG_PATH, encoding="utf-8"),
+        rotating,
         logging.StreamHandler(),
     ],
 )

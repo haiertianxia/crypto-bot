@@ -67,16 +67,19 @@ class PriceSimulator:
         return round(self.price, 2)
 
     def get_24hr_stats(self):
+        base_price = self.price
         klines = self.get_klines("1h", 24)
         prices = [k[4] for k in klines]
-        current = self.price
-        open_p = prices[0]
-        high = max(prices)
-        low = min(prices)
+        # use last kline close as current price (most reliable)
+        current = prices[-1] if prices else (self.price or 67000.0)
+        open_p = prices[0] if prices else current
+        high = max(prices) if prices else current
+        low = min(prices) if prices else current
+        self.price = base_price  # restore so tick() continues seamlessly
         change = current - open_p
         change_pct = (change / open_p) * 100 if open_p else 0
         return {
-            "price": round(current, 2),
+            "price": round(max(current, 0.01), 2),  # guard against 0
             "priceChange": round(change, 2),
             "priceChangePct": round(change_pct, 2),
             "high": round(high, 2),
