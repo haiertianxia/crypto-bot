@@ -8,7 +8,10 @@ from flask import Flask, render_template, jsonify
 
 import database
 import exchange
-from config import DB_PATH, DASHBOARD_PORT, SYMBOL, RSI_PERIOD, MODE, STOP_LOSS_PCT, POSITION_SIZE
+from config import (
+    DB_PATH, DASHBOARD_PORT, SYMBOL, RSI_PERIOD, RSI_BUY_THRESHOLD, RSI_SELL_THRESHOLD,
+    MODE, STOP_LOSS_PCT, POSITION_SIZE,
+)
 
 app = Flask(__name__, template_folder="templates")
 app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
@@ -43,7 +46,9 @@ def api_summary():
             "price_change_pct": ticker["priceChangePct"],
             "rsi_period": RSI_PERIOD,
         }
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger("dashboard").warning("api_summary market data error: %s", e)
         pass
 
     eq = database.get_latest_equity()
