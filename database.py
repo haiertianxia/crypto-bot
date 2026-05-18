@@ -173,17 +173,23 @@ def get_stats():
         c.execute("SELECT AVG(pnl) FROM trades WHERE exit_price IS NOT NULL")
         avg_pnl = c.fetchone()[0] or 0.0
         c.execute(
-            "SELECT SUM(pnl) FROM trades WHERE side='SELL' AND pnl > 0 AND exit_price IS NOT NULL"
+            "SELECT SUM(pnl) FROM trades WHERE pnl > 0 AND exit_price IS NOT NULL"
         )
         winning_pnl = c.fetchone()[0] or 0.0
         c.execute(
-            "SELECT COUNT(*) FROM trades WHERE side='SELL' AND pnl > 0 AND exit_price IS NOT NULL"
+            "SELECT COUNT(*) FROM trades WHERE pnl > 0 AND exit_price IS NOT NULL"
         )
         winning_trades = c.fetchone()[0]
+        c.execute(
+            "SELECT COUNT(*) FROM trades WHERE exit_price IS NOT NULL"
+        )
+        closed_trades = c.fetchone()[0]
+        win_rate = round(winning_trades / closed_trades * 100, 2) if closed_trades else 0.0
         return {
             "total_trades": total_trades,
             "total_pnl": round(total_pnl, 2),
             "avg_pnl": round(avg_pnl, 2),
             "winning_trades": winning_trades,
             "winning_pnl": round(winning_pnl, 2),
+            "win_rate": win_rate,
         }
