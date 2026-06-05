@@ -66,6 +66,44 @@ Stop loss: 2% (configurable via `STOP_LOSS_PCT`)
 
 ---
 
+## Backtesting
+
+Test the RSI strategy against historical or synthetic data:
+
+```bash
+python3 backtest.py --length 2000 --seed 99
+```
+
+### Parameter Sweep
+
+Find the best RSI parameters automatically:
+
+```bash
+python3 backtest.py --length 2000 --sweep
+```
+
+Top combinations by Sharpe ratio are displayed. You can also use historical data:
+
+```bash
+python3 backtest.py --data trades.csv --capital 10000 --sweep --output results.json
+```
+
+### Custom Parameters
+
+```bash
+python3 backtest.py --period 10 --buy 25 --sell 75 --stop-loss 3 --position-size 500
+```
+
+### Key Metrics Reported
+
+- Total Return / Max Drawdown
+- Win Rate / Profit Factor
+- Sharpe Ratio (annualized)
+- Full equity curve
+- Per-trade detail export
+
+---
+
 ## Configuration
 
 All settings via environment variables:
