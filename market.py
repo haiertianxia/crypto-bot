@@ -163,20 +163,53 @@ def calculate_macd(closes: list[float], fast=12, slow=26, signal=9) -> tuple | N
     return (round(macd, 4), round(sig, 4), round(macd - sig, 4))
 
 
-def get_market_snapshot(symbol: str = "BTCUSDT", rsi_period: int = 14):
-    """All-in-one snapshot for dashboard."""
+def calculate_bollinger_bands(closes: list[float], period: int = 20, num_std: float = 2.0) -> tuple | None:
+    """
+    Returns (upper_band, middle_band, lower_band) or None if not enough data.
+    Middle band = SMA, upper/lower = SMA ± num_std * std
+    """
+    if len(closes) < period:
+        return None
+    import statistics
+    closes = [float(c) for c in closes]
+    lookback = closes[-period:]
+    middle = statistics.mean(lookback)
+    std = statistics.stdev(lookback)
+    upper = middle + num_std * std
+    lower = middle - num_std * std
+    return (round(upper, 4), round(middle, 4), round(lower, 4))
+
+
+def get_market_snapshot(symbol: str = "BTCUSDT", rsi_period: int = 14,
+                              bb_period: int = 20, bb_std: float = 2.0,
+                              macd_fast: int = 12, macd_slow: int = 26, macd_signal: int = 9):
+    """All-in-one snapshot for dashboard — includes RSI, MACD, Bollinger Bands."""
     sim = get_simulator(symbol)
     ticker = sim.get_24hr_stats()
-    closes = [k[4] for k in sim.get_klines("1h", 100)]
+    closes = [k[4] for k in sim.get_klines("1h", max(
+        rsi_period + 1,
+        macd_slow + macd_signal,
+        bb_period,
+    ))]
     rsi = calculate_rsi(closes, rsi_period)
+    macd = calculate_macd(closes, fast=macd_fast, slow=macd_slow, signal=macd_signal)
+    bb = calculate_bollinger_bands(closes, period=bb_period, num_std=bb_std)
     return {
         "symbol": symbol,
         "price": ticker["price"],
         "rsi": rsi,
+        "macd_line": macd[0] if macd else None,
+        "macd_signal": macd[1] if macd else None,
+        "macd_histogram": macd[2] if macd else None,
+        "bb_upper": bb[0] if bb else None,
+        "bb_middle": bb[1] if bb else None,
+        "bb_lower": bb[2] if bb else None,
         "high_24h": ticker["high"],
         "low_24h": ticker["low"],
         "volume_24h": ticker["quoteVolume"],
         "price_change_pct": ticker["priceChangePct"],
         "rsi_period": rsi_period,
+        "bb_period": bb_period,
+        "bb_std": bb_std,
         "simulated": True,
     }

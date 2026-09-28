@@ -29,6 +29,22 @@ SYMBOL              = os.environ.get("SYMBOL", "BTCUSDT")
 RSI_PERIOD          = int(os.environ.get("RSI_PERIOD", "14"))
 RSI_BUY_THRESHOLD   = float(os.environ.get("RSI_BUY_THRESHOLD", "30"))
 RSI_SELL_THRESHOLD  = float(os.environ.get("RSI_SELL_THRESHOLD", "70"))
+
+# ─── Strategy Mode ──────────────────────────────────────────────────────────
+# "rsi"            : classic RSI mean-reversion only (RSI<buy_threshold → BUY, RSI>sell_threshold → SELL)
+# "rsi_macd"       : dual-confirmation — RSI signal AND MACD histogram cross (reduces false signals)
+# "rsi_bb"         : dual-confirmation — RSI signal AND Bollinger Band touch (RSI<buy + price<lower_band → BUY)
+STRATEGY_MODE       = os.environ.get("STRATEGY_MODE", "rsi")   # rsi | rsi_macd | rsi_bb
+
+# ─── MACD Parameters (for rsi_macd strategy) ──────────────────────────────
+MACD_FAST           = int(os.environ.get("MACD_FAST", "12"))
+MACD_SLOW           = int(os.environ.get("MACD_SLOW", "26"))
+MACD_SIGNAL         = int(os.environ.get("MACD_SIGNAL", "9"))
+
+# ─── Bollinger Band Parameters (for rsi_bb strategy) ──────────────────────
+BB_PERIOD           = int(os.environ.get("BB_PERIOD", "20"))
+BB_STD              = float(os.environ.get("BB_STD", "2.0"))
+
 INITIAL_CAPITAL     = float(os.environ.get("INITIAL_CAPITAL", "10000"))
 POSITION_SIZE       = float(os.environ.get("POSITION_SIZE", "100"))   # USDT per trade
 STOP_LOSS_PCT       = float(os.environ.get("STOP_LOSS_PCT", "2.0"))
